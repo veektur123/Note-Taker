@@ -5,6 +5,7 @@ const { uuid } = require('uuidv4');
 const fs = require('fs');
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
+app.use(express.static('public'))
 
 app.get('/notes', (request, response) => {
     response.sendFile(path.join(__dirname, "/public/notes.html"));
@@ -38,7 +39,7 @@ app.post('/api/notes', (req, res) => {
       const newNote = {
         title,
         text,
-        note_id: uuid(),
+        id: uuid(),
       };
   
       fs.readFile('./db/db.json', 'utf8', (err, data) => {
@@ -73,6 +74,33 @@ app.post('/api/notes', (req, res) => {
       res.status(500).json('Error in posting note');
     }
   });
+
+app.delete(`/api/notes/:deleteId`, (request,response)=> {
+    const deleteId = request.params.deleteId
+    fs.readFile('./db/db.json', 'utf8', (err, data) => {
+      if (err) {
+        console.error(err);
+      } else {
+        // Convert string into JSON object
+        const parsedNotes = JSON.parse(data);
+        const foundNoteIndex = parsedNotes.findIndex((note)=> {
+          return note.id === deleteId 
+        })
+        parsedNotes.splice(foundNoteIndex, 1)
+        // Write updated notes back to the file
+        fs.writeFile(
+          './db/db.json',
+          JSON.stringify(parsedNotes, null, 4),
+          (writeErr) =>
+            writeErr
+              ? console.error(writeErr)
+              : console.info('Successfully updated notes!')
+        );
+        response.sendFile(path.join(__dirname, "/public/notes.html"));
+      }
+    });
+  
+})
 
 app.get('*', (request, response) => {
     response.sendFile(path.join(__dirname, "/public/index.html"));
